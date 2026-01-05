@@ -1,0 +1,10 @@
+{
+    "projectName": "ForgeAI",
+    "description": "AI-powered app generator",
+    "category": "Website",
+    "sections": [
+        "Home",
+        "About",
+        "Contact"
+    ]
+}
