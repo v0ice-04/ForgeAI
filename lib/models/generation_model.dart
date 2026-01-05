@@ -17,32 +17,41 @@ class GenerationRequest {
 
   Map<String, dynamic> toJson() {
     return {
-      'applicationType': applicationType,
       'projectName': projectName,
       'description': description,
       'category': category,
       'sections': sections,
-      'themeColor': themeColor,
+      // Note: applicationType and themeColor are not sent to backend
+      // based on your API specification, but kept in model for UI use
     };
   }
 }
 
+/// Response from Spring Boot backend
 class GenerationResponse {
-  final String html;
-  final String css;
-  final String js;
+  final bool success;
+  final String message;
+  final String projectId;
 
   GenerationResponse({
-    required this.html,
-    required this.css,
-    required this.js,
+    required this.success,
+    required this.message,
+    required this.projectId,
   });
 
   factory GenerationResponse.fromJson(Map<String, dynamic> json) {
     return GenerationResponse(
-      html: json['html'] ?? '',
-      css: json['css'] ?? '',
-      js: json['js'] ?? '',
+      success: json['success'] as bool? ?? false,
+      message: json['message'] as String? ?? '',
+      projectId: json['projectId'] as String? ?? '',
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'success': success,
+      'message': message,
+      'projectId': projectId,
+    };
   }
 }

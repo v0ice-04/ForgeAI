@@ -15,7 +15,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final _formKey = GlobalKey<FormState>();
   final _forgeService = ForgeService();
 
-  String _applicationType = 'Website';
+  final String _applicationType = 'Website';
   final _projectNameController = TextEditingController();
   final _descriptionController = TextEditingController();
   String _category = 'Portfolio';
@@ -434,7 +434,7 @@ class _HomeScreenState extends State<HomeScreen> {
             borderRadius: BorderRadius.circular(16),
           ),
         ).copyWith(
-          backgroundColor: MaterialStateProperty.all(Colors.transparent),
+          backgroundColor: WidgetStateProperty.all(Colors.transparent),
         ),
         child: Ink(
           decoration: BoxDecoration(

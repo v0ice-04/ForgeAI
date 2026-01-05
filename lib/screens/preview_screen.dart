@@ -1,54 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import 'package:flutter/services.dart';
 import '../models/generation_model.dart';
 
-class PreviewScreen extends StatefulWidget {
+class PreviewScreen extends StatelessWidget {
   final GenerationResponse response;
 
   const PreviewScreen({super.key, required this.response});
-
-  @override
-  State<PreviewScreen> createState() => _PreviewScreenState();
-}
-
-class _PreviewScreenState extends State<PreviewScreen> {
-  late final WebViewController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(const Color(0x00000000))
-      ..loadHtmlString(_buildHtml(widget.response));
-  }
-
-  String _buildHtml(GenerationResponse response) {
-    return '''
-<!DOCTYPE html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-${response.css}
-</style>
-</head>
-<body>
-${response.html}
-<script>
-${response.js}
-</script>
-</body>
-</html>
-    ''';
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('PREVIEW', style: TextStyle(letterSpacing: 2.0)),
+        title: const Text('GENERATION RESULT',
+            style: TextStyle(letterSpacing: 2.0)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
@@ -71,53 +36,135 @@ ${response.js}
               ),
             ),
           ),
-          // Preview Container
+          // Content
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: const Color(0xFF00F0FF).withOpacity(0.5),
-                    width: 2,
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Success Icon
+                  Icon(
+                    response.success ? Icons.check_circle : Icons.error,
+                    size: 100,
+                    color:
+                        response.success ? const Color(0xFF00F0FF) : Colors.red,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF00F0FF).withOpacity(0.1),
-                      blurRadius: 20,
-                      spreadRadius: 5,
+                  const SizedBox(height: 32),
+
+                  // Status Text
+                  Text(
+                    response.success ? 'SUCCESS!' : 'FAILED',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: response.success
+                          ? const Color(0xFF00F0FF)
+                          : Colors.red,
+                      letterSpacing: 3.0,
                     ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(18),
-                  child: WebViewWidget(controller: _controller),
-                ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Message Card
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: const Color(0xFF00F0FF).withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'MESSAGE',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF00F0FF),
+                            letterSpacing: 2.0,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          response.message,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Project ID Card
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: const Color(0xFF7000FF).withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'PROJECT ID',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF7000FF),
+                                letterSpacing: 2.0,
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.copy, size: 20),
+                              color: const Color(0xFF7000FF),
+                              onPressed: () {
+                                Clipboard.setData(
+                                  ClipboardData(text: response.projectId),
+                                );
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content:
+                                        Text('Project ID copied to clipboard'),
+                                    backgroundColor: Color(0xFF1A1F35),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          response.projectId,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.white,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Downloading source code...'),
-              backgroundColor: Color(0xFF1A1F35),
-            ),
-          );
-        },
-        backgroundColor: const Color(0xFF7000FF),
-        icon: const Icon(Icons.download, color: Colors.white),
-        label: const Text(
-          'SOURCE CODE',
-          style: TextStyle(
-            color: Colors.white,
-            letterSpacing: 1.0,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
       ),
     );
   }

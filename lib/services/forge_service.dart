@@ -3,9 +3,11 @@ import 'package:http/http.dart' as http;
 import '../models/generation_model.dart';
 
 class ForgeService {
-  static const String _baseUrl = 'https://api.forgeai.com'; // Placeholder URL
+  // Updated to use local Spring Boot backend
+  static const String _baseUrl = 'http://localhost:8080';
 
-  Future<GenerationResponse> generateApplication(GenerationRequest request) async {
+  Future<GenerationResponse> generateApplication(
+      GenerationRequest request) async {
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/api/generate'),
@@ -13,13 +15,16 @@ class ForgeService {
         body: jsonEncode(request.toJson()),
       );
 
-      if (response.statusCode == 200) {
-        return GenerationResponse.fromJson(jsonDecode(response.body));
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonData = jsonDecode(response.body) as Map<String, dynamic>;
+        return GenerationResponse.fromJson(jsonData);
       } else {
-        throw Exception('Failed to generate application: ${response.statusCode}');
+        throw Exception(
+            'Failed to generate application. Status: ${response.statusCode}, '
+            'Response: ${response.body}');
       }
     } catch (e) {
-      throw Exception('Error connecting to ForgeAI: $e');
+      throw Exception('Error connecting to ForgeAI backend: $e');
     }
   }
 }

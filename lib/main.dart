@@ -21,7 +21,6 @@ class ForgeAIApp extends StatelessWidget {
           primary: Color(0xFF00F0FF), // Neon Cyan
           secondary: Color(0xFF7000FF), // Neon Violet
           surface: Color(0xFF121624),
-          background: Color(0xFF0A0E17),
           onPrimary: Colors.black,
           onSecondary: Colors.white,
         ),
