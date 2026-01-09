@@ -18,4 +18,8 @@ class ApiConfig {
   /// Get the edit endpoint for a project
   static String editUrl(String projectId) =>
       '$baseUrl/api/projects/$projectId/edit';
+
+  /// Get the download URL (ZIP) for a project
+  static String downloadUrl(String projectId) =>
+      '$baseUrl/api/projects/$projectId/download';
 }

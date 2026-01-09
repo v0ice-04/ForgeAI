@@ -181,9 +181,10 @@ class _PreviewScreenState extends State<PreviewScreen> {
             flex: 7,
             child: Stack(
               children: [
-                WebPreviewPane(
+                WebPreviewWithDownload(
                   key: _previewKey,
                   url: ApiConfig.previewUrl(widget.projectId),
+                  zipUrl: ApiConfig.downloadUrl(widget.projectId),
                 ),
                 if (_isRegenerating)
                   Container(

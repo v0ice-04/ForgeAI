@@ -22,3 +22,29 @@ class WebPreviewPane extends StatelessWidget {
     );
   }
 }
+
+class WebPreviewWeb extends StatelessWidget {
+  final String url;
+  const WebPreviewWeb({super.key, required this.url});
+
+  @override
+  Widget build(BuildContext context) {
+    return const WebPreviewPane(url: '');
+  }
+}
+
+class WebPreviewWithDownload extends StatelessWidget {
+  final String url;
+  final String zipUrl;
+
+  const WebPreviewWithDownload({
+    super.key,
+    required this.url,
+    required this.zipUrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return const WebPreviewPane(url: '');
+  }
+}
