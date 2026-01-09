@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 import '../services/api_service.dart';
 import '../config/api_config.dart';
+import '../widgets/web_preview/web_preview_pane.dart';
 
 class PreviewScreen extends StatefulWidget {
   final String projectId;
@@ -13,11 +13,13 @@ class PreviewScreen extends StatefulWidget {
 }
 
 class _PreviewScreenState extends State<PreviewScreen> {
-  late final WebViewController _webViewController;
   final TextEditingController _chatController = TextEditingController();
   final List<Map<String, String>> _messages = [];
   final ApiService _apiService = ApiService();
   bool _isRegenerating = false;
+
+  // Track refresh state for the preview iframe
+  Key _previewKey = UniqueKey();
 
   @override
   void initState() {
@@ -27,21 +29,12 @@ class _PreviewScreenState extends State<PreviewScreen> {
       'text':
           'Welcome! Your project has been generated. How can I help you refine it?',
     });
+  }
 
-    _webViewController = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(const Color(0x00000000))
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onProgress: (int progress) {
-            // Update loading bar.
-          },
-          onPageStarted: (String url) {},
-          onPageFinished: (String url) {},
-          onWebResourceError: (WebResourceError error) {},
-        ),
-      )
-      ..loadRequest(Uri.parse(ApiConfig.previewUrl(widget.projectId)));
+  void _refreshPreview() {
+    setState(() {
+      _previewKey = UniqueKey();
+    });
   }
 
   Future<void> _sendMessage() async {
@@ -64,10 +57,8 @@ class _PreviewScreenState extends State<PreviewScreen> {
           'text': 'Changes applied! Refreshing preview...',
         });
         _isRegenerating = false;
+        _refreshPreview(); // Force iframe reload
       });
-
-      // Reload WebView
-      _webViewController.reload();
     } catch (e) {
       setState(() {
         _messages.add({
@@ -102,13 +93,13 @@ class _PreviewScreenState extends State<PreviewScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: Color(0xFF00F0FF)),
-            onPressed: () => _webViewController.reload(),
+            onPressed: _refreshPreview,
           ),
         ],
       ),
       body: Row(
         children: [
-          // Left Panel: Chat UI (30%)
+          // Left Panel: Chat / Prompt UI (30%)
           Expanded(
             flex: 3,
             child: Container(
@@ -185,12 +176,15 @@ class _PreviewScreenState extends State<PreviewScreen> {
             ),
           ),
 
-          // Right Panel: WebView (70%)
+          // Right Panel: Live Preview (iframe) (70%)
           Expanded(
             flex: 7,
             child: Stack(
               children: [
-                WebViewWidget(controller: _webViewController),
+                WebPreviewPane(
+                  key: _previewKey,
+                  url: ApiConfig.previewUrl(widget.projectId),
+                ),
                 if (_isRegenerating)
                   Container(
                     color: Colors.black.withOpacity(0.7),
