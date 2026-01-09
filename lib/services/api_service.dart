@@ -27,4 +27,27 @@ class ApiService {
       throw Exception('Error connecting to backend: $e');
     }
   }
+
+  Future<ProjectResponse> editProject(String projectId, String message) async {
+    try {
+      final url = Uri.parse(ApiConfig.editUrl(projectId));
+
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'message': message}),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonData = jsonDecode(response.body) as Map<String, dynamic>;
+        return ProjectResponse.fromJson(jsonData);
+      } else {
+        throw Exception(
+            'Failed to edit project. Status: ${response.statusCode}, '
+            'Response: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Error connecting to backend: $e');
+    }
+  }
 }

@@ -1,170 +1,257 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import '../models/generation_model.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+import '../services/api_service.dart';
+import '../config/api_config.dart';
 
-class PreviewScreen extends StatelessWidget {
-  final GenerationResponse response;
+class PreviewScreen extends StatefulWidget {
+  final String projectId;
 
-  const PreviewScreen({super.key, required this.response});
+  const PreviewScreen({super.key, required this.projectId});
+
+  @override
+  State<PreviewScreen> createState() => _PreviewScreenState();
+}
+
+class _PreviewScreenState extends State<PreviewScreen> {
+  late final WebViewController _webViewController;
+  final TextEditingController _chatController = TextEditingController();
+  final List<Map<String, String>> _messages = [];
+  final ApiService _apiService = ApiService();
+  bool _isRegenerating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _messages.add({
+      'role': 'assistant',
+      'text':
+          'Welcome! Your project has been generated. How can I help you refine it?',
+    });
+
+    _webViewController = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(const Color(0x00000000))
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onProgress: (int progress) {
+            // Update loading bar.
+          },
+          onPageStarted: (String url) {},
+          onPageFinished: (String url) {},
+          onWebResourceError: (WebResourceError error) {},
+        ),
+      )
+      ..loadRequest(Uri.parse(ApiConfig.previewUrl(widget.projectId)));
+  }
+
+  Future<void> _sendMessage() async {
+    final text = _chatController.text.trim();
+    if (text.isEmpty) return;
+
+    setState(() {
+      _messages.add({'role': 'user', 'text': text});
+      _chatController.clear();
+      _isRegenerating = true;
+    });
+
+    try {
+      await _apiService.editProject(widget.projectId, text);
+
+      // Successfully regenerated
+      setState(() {
+        _messages.add({
+          'role': 'assistant',
+          'text': 'Changes applied! Refreshing preview...',
+        });
+        _isRegenerating = false;
+      });
+
+      // Reload WebView
+      _webViewController.reload();
+    } catch (e) {
+      setState(() {
+        _messages.add({
+          'role': 'assistant',
+          'text': 'Error applying changes: $e',
+        });
+        _isRegenerating = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      backgroundColor: const Color(0xFF0A0E17),
       appBar: AppBar(
-        title: const Text('GENERATION RESULT',
-            style: TextStyle(letterSpacing: 2.0)),
-        backgroundColor: Colors.transparent,
+        title: Text(
+          'FORGE AI EDITOR: ${widget.projectId.substring(0, 8).toUpperCase()}',
+          style: const TextStyle(
+            color: Color(0xFF00F0FF),
+            letterSpacing: 2.0,
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: const Color(0xFF1A1F35),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Color(0xFF00F0FF)),
+            onPressed: () => _webViewController.reload(),
+          ),
+        ],
       ),
-      body: Stack(
+      body: Row(
         children: [
-          // Background Gradient
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFF0A0E17),
-                  Color(0xFF1A1F35),
+          // Left Panel: Chat UI (30%)
+          Expanded(
+            flex: 3,
+            child: Container(
+              decoration: const BoxDecoration(
+                border: Border(
+                  right: BorderSide(
+                    color: Color(0xFF1A1F35),
+                    width: 1,
+                  ),
+                ),
+              ),
+              child: Column(
+                children: [
+                  // Chat Messages
+                  Expanded(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _messages.length,
+                      itemBuilder: (context, index) {
+                        final msg = _messages[index];
+                        final isUser = msg['role'] == 'user';
+                        return _buildChatBubble(msg['text'] ?? '', isUser);
+                      },
+                    ),
+                  ),
+
+                  // Chat Input
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    color: const Color(0xFF1A1F35),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _chatController,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: InputDecoration(
+                              hintText: 'Ask AI to edit...',
+                              hintStyle: TextStyle(
+                                color: Colors.white.withOpacity(0.5),
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
+                              fillColor: const Color(0xFF0A0E17),
+                              filled: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                            ),
+                            onSubmitted: (_) => _sendMessage(),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF00F0FF), Color(0xFF7000FF)],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.send, color: Colors.white),
+                            onPressed: _sendMessage,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
-          // Content
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Success Icon
-                  Icon(
-                    response.success ? Icons.check_circle : Icons.error,
-                    size: 100,
-                    color:
-                        response.success ? const Color(0xFF00F0FF) : Colors.red,
-                  ),
-                  const SizedBox(height: 32),
 
-                  // Status Text
-                  Text(
-                    response.success ? 'SUCCESS!' : 'FAILED',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: response.success
-                          ? const Color(0xFF00F0FF)
-                          : Colors.red,
-                      letterSpacing: 3.0,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Message Card
+          // Right Panel: WebView (70%)
+          Expanded(
+            flex: 7,
+            child: Stack(
+              children: [
+                WebViewWidget(controller: _webViewController),
+                if (_isRegenerating)
                   Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: const Color(0xFF00F0FF).withOpacity(0.3),
-                        width: 1,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'MESSAGE',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                    color: Colors.black.withOpacity(0.7),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const CircularProgressIndicator(
                             color: Color(0xFF00F0FF),
-                            letterSpacing: 2.0,
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          response.message,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            color: Colors.white,
+                          const SizedBox(height: 16),
+                          Text(
+                            'AI IS REFORGING...',
+                            style: TextStyle(
+                              color: const Color(0xFF00F0FF),
+                              letterSpacing: 3.0,
+                              fontWeight: FontWeight.bold,
+                              shadows: [
+                                Shadow(
+                                  color:
+                                      const Color(0xFF00F0FF).withOpacity(0.5),
+                                  blurRadius: 10,
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Project ID Card
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: const Color(0xFF7000FF).withOpacity(0.3),
-                        width: 1,
+                        ],
                       ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'PROJECT ID',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF7000FF),
-                                letterSpacing: 2.0,
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.copy, size: 20),
-                              color: const Color(0xFF7000FF),
-                              onPressed: () {
-                                Clipboard.setData(
-                                  ClipboardData(text: response.projectId),
-                                );
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content:
-                                        Text('Project ID copied to clipboard'),
-                                    backgroundColor: Color(0xFF1A1F35),
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          response.projectId,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.white,
-                            fontFamily: 'monospace',
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
-                ],
-              ),
+              ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildChatBubble(String text, bool isUser) {
+    return Align(
+      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
+        constraints: const BoxConstraints(maxWidth: 280),
+        decoration: BoxDecoration(
+          color: isUser ? const Color(0xFF7000FF) : const Color(0xFF1A1F35),
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(16),
+            topRight: const Radius.circular(16),
+            bottomLeft: Radius.circular(isUser ? 16 : 0),
+            bottomRight: Radius.circular(isUser ? 0 : 16),
+          ),
+          border: isUser
+              ? null
+              : Border.all(color: const Color(0xFF00F0FF).withOpacity(0.3)),
+        ),
+        child: Text(
+          text,
+          style: const TextStyle(color: Colors.white, fontSize: 14),
+        ),
       ),
     );
   }

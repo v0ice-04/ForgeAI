@@ -10,4 +10,12 @@ class ApiConfig {
 
   /// Get the full URL for the generate project endpoint
   static String get generateUrl => '$baseUrl$generateEndpoint';
+
+  /// Get the preview URL for a project
+  static String previewUrl(String projectId) =>
+      '$baseUrl/api/projects/$projectId/preview';
+
+  /// Get the edit endpoint for a project
+  static String editUrl(String projectId) =>
+      '$baseUrl/api/projects/$projectId/edit';
 }

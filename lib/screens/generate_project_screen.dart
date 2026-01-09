@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/project_request.dart';
 import '../services/api_service.dart';
+import 'preview_screen.dart';
 
 /// Screen to demonstrate project generation with the backend API
 class GenerateProjectScreen extends StatefulWidget {
@@ -47,6 +48,15 @@ class _GenerateProjectScreenState extends State<GenerateProjectScreen> {
         _responseMessage = response.message;
         _projectId = response.projectId;
       });
+
+      // Navigate to PreviewScreen on success
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => PreviewScreen(projectId: response.projectId),
+          ),
+        );
+      }
     } catch (e) {
       // Handle errors
       setState(() {

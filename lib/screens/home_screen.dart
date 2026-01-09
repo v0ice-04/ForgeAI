@@ -67,7 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => PreviewScreen(response: response),
+          builder: (context) => PreviewScreen(projectId: response.projectId),
         ),
       );
     } catch (e) {
