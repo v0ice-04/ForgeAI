@@ -1,5 +1,4 @@
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
+import 'package:web/web.dart' as web;
 import 'dart:ui_web' as ui;
 import 'package:flutter/material.dart';
 
@@ -40,7 +39,7 @@ class _WebPreviewPaneState extends State<WebPreviewPane> {
     ui.platformViewRegistry.registerViewFactory(
       _viewId,
       (int viewId) {
-        final iframe = html.IFrameElement()
+        final iframe = web.HTMLIFrameElement()
           ..src = widget.previewUrl
           ..style.border = 'none'
           ..style.width = '100%'

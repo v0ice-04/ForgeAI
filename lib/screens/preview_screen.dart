@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:web/web.dart' as web;
 import '../services/api_service.dart';
 import '../config/api_config.dart';
 import '../widgets/web_preview/web_preview_pane.dart';
@@ -73,50 +74,68 @@ class _PreviewScreenState extends State<PreviewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0E17),
+      backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
-        title: Text(
-          'FORGE AI EDITOR: ${widget.projectId.substring(0, 8).toUpperCase()}',
-          style: const TextStyle(
-            color: Color(0xFF00F0FF),
-            letterSpacing: 2.0,
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
+        title: Row(
+          children: [
+            const Icon(Icons.auto_awesome, color: Color(0xFF00F0FF), size: 20),
+            const SizedBox(width: 12),
+            Text(
+              'FORGE AI EDITOR',
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.9),
+                letterSpacing: 1.2,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFF1E293B),
+        elevation: 0,
+        leadingWidth: 40,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 8.0),
+          child: IconButton(
+            icon: const Icon(Icons.chevron_left, color: Colors.white, size: 24),
+            onPressed: () => Navigator.of(context).pop(),
           ),
         ),
-        backgroundColor: const Color(0xFF1A1F35),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Color(0xFF00F0FF)),
-            onPressed: _refreshPreview,
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF334155),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Center(
+              child: Text(
+                'Project: ${widget.projectId.substring(0, 8).toUpperCase()}',
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
           ),
         ],
       ),
       body: Row(
         children: [
-          // Left Panel: Chat / Prompt UI (30%)
-          Expanded(
-            flex: 3,
-            child: Container(
-              decoration: const BoxDecoration(
-                border: Border(
-                  right: BorderSide(
-                    color: Color(0xFF1A1F35),
-                    width: 1,
-                  ),
-                ),
-              ),
-              child: Column(
-                children: [
-                  // Chat Messages
-                  Expanded(
+          // Left Panel: Chat / Prompt UI
+          SizedBox(
+            width: 380,
+            child: Column(
+              children: [
+                // Chat Messages
+                Expanded(
+                  child: Container(
+                    color: const Color(0xFF0F172A),
                     child: ListView.builder(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 20),
                       itemCount: _messages.length,
                       itemBuilder: (context, index) {
                         final msg = _messages[index];
@@ -125,101 +144,241 @@ class _PreviewScreenState extends State<PreviewScreen> {
                       },
                     ),
                   ),
+                ),
 
-                  // Chat Input
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    color: const Color(0xFF1A1F35),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _chatController,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: InputDecoration(
-                              hintText: 'Ask AI to edit...',
-                              hintStyle: TextStyle(
-                                color: Colors.white.withOpacity(0.5),
+                // Chat Input box at bottom
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF1E293B),
+                    border: Border(
+                      top: BorderSide(color: Color(0xFF334155), width: 1),
+                    ),
+                  ),
+                  child: Card(
+                    elevation: 4,
+                    color: const Color(0xFF0F172A),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _chatController,
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 14),
+                              decoration: InputDecoration(
+                                hintText: 'Ask AI to edit...',
+                                hintStyle: TextStyle(
+                                  color: Colors.white.withOpacity(0.3),
+                                ),
+                                border: InputBorder.none,
+                                contentPadding:
+                                    const EdgeInsets.symmetric(vertical: 16),
                               ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide.none,
-                              ),
-                              fillColor: const Color(0xFF0A0E17),
-                              filled: true,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
+                              onSubmitted: (_) => _sendMessage(),
                             ),
-                            onSubmitted: (_) => _sendMessage(),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF00F0FF), Color(0xFF7000FF)],
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: IconButton(
-                            icon: const Icon(Icons.send, color: Colors.white),
+                          IconButton(
+                            icon: const Icon(Icons.send_rounded,
+                                color: Color(0xFF00F0FF)),
                             onPressed: _sendMessage,
                           ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Vertical Divider
+          const VerticalDivider(
+            width: 1,
+            thickness: 1,
+            color: Color(0xFF334155),
+          ),
+
+          // Right Panel: Live Preview
+          Expanded(
+            child: Container(
+              color: const Color(0xFFF5F6FA), // Neutral workspace background
+              child: Column(
+                children: [
+                  // Browser-like Toolbar
+                  Container(
+                    height: 54,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      border: Border(
+                        bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.language,
+                            size: 18, color: Color(0xFF64748B)),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text(
+                            'Live Website Preview',
+                            style: TextStyle(
+                              color: Color(0xFF1E293B),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                        _buildToolbarButton(
+                          icon: Icons.refresh_rounded,
+                          tooltip: 'Refresh',
+                          onPressed: _refreshPreview,
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            web.window.open(
+                                ApiConfig.previewUrl(widget.projectId),
+                                '_blank');
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF334155),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 0),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                          ),
+                          icon: const Icon(Icons.open_in_new, size: 14),
+                          label: const Text('',
+                              style: TextStyle(
+                                  fontSize: 11, fontWeight: FontWeight.w600)),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            web.window.open(
+                                ApiConfig.downloadUrl(widget.projectId),
+                                '_blank');
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF4F46E5),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 0),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                          ),
+                          icon: const Icon(Icons.download, size: 16),
+                          label: const Text('Export',
+                              style: TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.bold)),
                         ),
                       ],
+                    ),
+                  ),
+
+                  // Preview Content (The "Card" Container)
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.08),
+                              blurRadius: 24,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(11),
+                          child: Stack(
+                            children: [
+                              WebPreviewWeb(
+                                key: _previewKey,
+                                url: ApiConfig.previewUrl(widget.projectId),
+                              ),
+                              if (_isRegenerating)
+                                Container(
+                                  color: Colors.black.withOpacity(0.4),
+                                  child: Center(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const CircularProgressIndicator(
+                                          color: Color(0xFF00F0FF),
+                                          strokeWidth: 3,
+                                        ),
+                                        const SizedBox(height: 20),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 20, vertical: 10),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF1E293B),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                          ),
+                                          child: const Text(
+                                            'REGENERATING...',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              letterSpacing: 1.5,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
           ),
-
-          // Right Panel: Live Preview (iframe) (70%)
-          Expanded(
-            flex: 7,
-            child: Stack(
-              children: [
-                WebPreviewWithDownload(
-                  key: _previewKey,
-                  url: ApiConfig.previewUrl(widget.projectId),
-                  zipUrl: ApiConfig.downloadUrl(widget.projectId),
-                ),
-                if (_isRegenerating)
-                  Container(
-                    color: Colors.black.withOpacity(0.7),
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const CircularProgressIndicator(
-                            color: Color(0xFF00F0FF),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'AI IS REFORGING...',
-                            style: TextStyle(
-                              color: const Color(0xFF00F0FF),
-                              letterSpacing: 3.0,
-                              fontWeight: FontWeight.bold,
-                              shadows: [
-                                Shadow(
-                                  color:
-                                      const Color(0xFF00F0FF).withOpacity(0.5),
-                                  blurRadius: 10,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildToolbarButton({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onPressed,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(4),
+        child: Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Icon(icon, size: 18, color: const Color(0xFF64748B)),
+        ),
       ),
     );
   }
@@ -228,24 +387,33 @@ class _PreviewScreenState extends State<PreviewScreen> {
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(12),
-        constraints: const BoxConstraints(maxWidth: 280),
+        margin: const EdgeInsets.only(bottom: 20),
+        padding: const EdgeInsets.all(16),
+        constraints: const BoxConstraints(maxWidth: 300),
         decoration: BoxDecoration(
-          color: isUser ? const Color(0xFF7000FF) : const Color(0xFF1A1F35),
+          color: isUser ? const Color(0xFF4F46E5) : const Color(0xFF1E293B),
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(16),
             topRight: const Radius.circular(16),
-            bottomLeft: Radius.circular(isUser ? 16 : 0),
-            bottomRight: Radius.circular(isUser ? 0 : 16),
+            bottomLeft: Radius.circular(isUser ? 16 : 4),
+            bottomRight: Radius.circular(isUser ? 4 : 16),
           ),
-          border: isUser
-              ? null
-              : Border.all(color: const Color(0xFF00F0FF).withOpacity(0.3)),
+          boxShadow: [
+            if (isUser)
+              BoxShadow(
+                color: const Color(0xFF4F46E5).withOpacity(0.3),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+          ],
         ),
         child: Text(
           text,
-          style: const TextStyle(color: Colors.white, fontSize: 14),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            height: 1.4,
+          ),
         ),
       ),
     );
