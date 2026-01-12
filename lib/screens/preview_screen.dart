@@ -1,6 +1,8 @@
+import 'dart:async'; // Added for Timer
 import 'package:flutter/material.dart';
 import 'package:web/web.dart' as web;
 import '../services/api_service.dart';
+import '../services/forge_service.dart'; // Added for pollProjectStatus
 import '../config/api_config.dart';
 import '../widgets/web_preview/web_preview_pane.dart';
 
@@ -22,7 +24,12 @@ class _PreviewScreenState extends State<PreviewScreen> {
   final TextEditingController _chatController = TextEditingController();
   final List<Map<String, String>> _messages = [];
   final ApiService _apiService = ApiService();
+  final ForgeService _forgeService = ForgeService(); // Added ForgeService
+
   bool _isRegenerating = false;
+  bool _isInitialGeneration = false;
+  String? _generationError;
+  Timer? _pollTimer;
 
   // Track refresh state for the preview iframe
   Key _previewKey = UniqueKey();
@@ -33,11 +40,12 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
     // Set initial state based on whether we're generating
     if (widget.isGenerating) {
-      _isRegenerating = true;
+      _isInitialGeneration = true;
       _messages.add({
         'role': 'assistant',
         'text': 'Generating your project... This may take a moment.',
       });
+      _startPolling();
     } else {
       _messages.add({
         'role': 'assistant',
@@ -45,6 +53,50 @@ class _PreviewScreenState extends State<PreviewScreen> {
             'Welcome! Your project has been generated. How can I help you refine it?',
       });
     }
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    _chatController.dispose();
+    super.dispose();
+  }
+
+  void _startPolling() {
+    // Poll every 2 seconds
+    _pollTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
+      try {
+        final status = await _forgeService.getProjectStatus(widget.projectId);
+
+        if (!mounted) return;
+
+        if (status.isCompleted) {
+          timer.cancel();
+          setState(() {
+            _isInitialGeneration = false;
+            _messages.add({
+              'role': 'assistant',
+              'text': 'Project generated successfully! displaying preview...',
+            });
+            _refreshPreview();
+          });
+        } else if (status.isFailed) {
+          timer.cancel();
+          setState(() {
+            _isInitialGeneration = false;
+            _generationError = status.error ?? 'Unknown error occurred';
+            _messages.add({
+              'role': 'assistant',
+              'text': 'Generation failed: $_generationError',
+            });
+          });
+        }
+        // If processing, continue polling
+      } catch (e) {
+        // Log error but continue polling (network glitches happen)
+        print('Polling error: $e');
+      }
+    });
   }
 
   void _refreshPreview() {
@@ -323,10 +375,60 @@ class _PreviewScreenState extends State<PreviewScreen> {
                           borderRadius: BorderRadius.circular(11),
                           child: Stack(
                             children: [
-                              WebPreviewWeb(
-                                key: _previewKey,
-                                url: ApiConfig.previewUrl(widget.projectId),
-                              ),
+                              if (_isInitialGeneration)
+                                Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const CircularProgressIndicator(
+                                        color: Color(0xFF00F0FF),
+                                      ),
+                                      const SizedBox(height: 24),
+                                      Text(
+                                        'FORGING PROJECT...',
+                                        style: TextStyle(
+                                          color: const Color(0xFF1E293B)
+                                              .withOpacity(0.8),
+                                          letterSpacing: 3.0,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              else if (_generationError != null)
+                                Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.error_outline,
+                                          color: Colors.red, size: 48),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        'Generation Failed',
+                                        style: TextStyle(
+                                          color: Colors.red[700],
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        _generationError!,
+                                        style: const TextStyle(
+                                            color: Colors.black54),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              else
+                                WebPreviewWeb(
+                                  key: _previewKey,
+                                  url: ApiConfig.previewUrl(widget.projectId),
+                                ),
+
+                              // Overlay for regeneration (editing)
                               if (_isRegenerating)
                                 Container(
                                   color: Colors.black.withOpacity(0.4),

@@ -60,14 +60,20 @@ class _HomeScreenState extends State<HomeScreen> {
         themeColor: _themeColor,
       );
 
+      // Backend now returns immediately with "processing" status
       final response = await _forgeService.generateApplication(request);
 
       if (!mounted) return;
 
+      // Navigate immediately - don't wait for completion
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => PreviewScreen(projectId: response.projectId),
+          builder: (context) => PreviewScreen(
+            projectId: response.projectId,
+            // If status is already completed (rare but possible), don't show generating state
+            isGenerating: !response.isCompleted,
+          ),
         ),
       );
     } catch (e) {

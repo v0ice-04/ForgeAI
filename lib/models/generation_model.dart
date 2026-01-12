@@ -27,31 +27,47 @@ class GenerationRequest {
   }
 }
 
-/// Response from Spring Boot backend
+/// Response from Spring Boot backend (async job)
 class GenerationResponse {
-  final bool success;
-  final String message;
   final String projectId;
+  final String status; // "processing" | "completed" | "failed"
+  final String? message;
+  final String? previewUrl;
+  final String? zipUrl;
+  final String? error;
 
   GenerationResponse({
-    required this.success,
-    required this.message,
     required this.projectId,
+    required this.status,
+    this.message,
+    this.previewUrl,
+    this.zipUrl,
+    this.error,
   });
 
   factory GenerationResponse.fromJson(Map<String, dynamic> json) {
     return GenerationResponse(
-      success: json['success'] as bool? ?? false,
-      message: json['message'] as String? ?? '',
       projectId: json['projectId'] as String? ?? '',
+      status: json['status'] as String? ?? 'processing',
+      message: json['message'] as String?,
+      previewUrl: json['previewUrl'] as String?,
+      zipUrl: json['zipUrl'] as String?,
+      error: json['error'] as String?,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'success': success,
-      'message': message,
       'projectId': projectId,
+      'status': status,
+      if (message != null) 'message': message,
+      if (previewUrl != null) 'previewUrl': previewUrl,
+      if (zipUrl != null) 'zipUrl': zipUrl,
+      if (error != null) 'error': error,
     };
   }
+
+  bool get isProcessing => status == 'processing';
+  bool get isCompleted => status == 'completed';
+  bool get isFailed => status == 'failed';
 }
