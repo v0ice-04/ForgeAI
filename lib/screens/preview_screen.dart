@@ -6,8 +6,13 @@ import '../widgets/web_preview/web_preview_pane.dart';
 
 class PreviewScreen extends StatefulWidget {
   final String projectId;
+  final bool isGenerating;
 
-  const PreviewScreen({super.key, required this.projectId});
+  const PreviewScreen({
+    super.key,
+    required this.projectId,
+    this.isGenerating = false,
+  });
 
   @override
   State<PreviewScreen> createState() => _PreviewScreenState();
@@ -25,11 +30,21 @@ class _PreviewScreenState extends State<PreviewScreen> {
   @override
   void initState() {
     super.initState();
-    _messages.add({
-      'role': 'assistant',
-      'text':
-          'Welcome! Your project has been generated. How can I help you refine it?',
-    });
+
+    // Set initial state based on whether we're generating
+    if (widget.isGenerating) {
+      _isRegenerating = true;
+      _messages.add({
+        'role': 'assistant',
+        'text': 'Generating your project... This may take a moment.',
+      });
+    } else {
+      _messages.add({
+        'role': 'assistant',
+        'text':
+            'Welcome! Your project has been generated. How can I help you refine it?',
+      });
+    }
   }
 
   void _refreshPreview() {

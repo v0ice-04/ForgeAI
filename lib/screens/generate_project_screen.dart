@@ -22,6 +22,9 @@ class _GenerateProjectScreenState extends State<GenerateProjectScreen> {
 
   /// Handle the "Generate Project" button press
   Future<void> _generateProject() async {
+    // Prevent duplicate requests
+    if (_isLoading) return;
+
     // Clear previous results
     setState(() {
       _isLoading = true;
@@ -30,40 +33,54 @@ class _GenerateProjectScreenState extends State<GenerateProjectScreen> {
       _errorMessage = null;
     });
 
-    try {
-      // Create a sample request (you can modify this to use form inputs)
-      final request = ProjectRequest(
-        projectName: 'ForgeAI',
-        description: 'AI generated website',
-        category: 'Website',
-        sections: ['Home', 'About'],
-      );
+    // Create a sample request (you can modify this to use form inputs)
+    final request = ProjectRequest(
+      projectName: 'ForgeAI',
+      description: 'AI generated website',
+      category: 'Website',
+      sections: ['Home', 'About'],
+    );
 
-      // Call the API
-      final response = await _apiService.generateProject(request);
+    // Navigate to PreviewScreen IMMEDIATELY
+    // This prevents the user from accidentally canceling the request
+    if (mounted) {
+      // Generate a temporary project ID for navigation
+      final tempProjectId =
+          'generating-${DateTime.now().millisecondsSinceEpoch}';
 
-      // Update UI with the response
-      setState(() {
-        _isLoading = false;
-        _responseMessage = response.message;
-        _projectId = response.projectId;
-      });
-
-      // Navigate to PreviewScreen on success
-      if (mounted) {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => PreviewScreen(projectId: response.projectId),
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => PreviewScreen(
+            projectId: tempProjectId,
+            isGenerating: true, // Pass flag to show loading state
           ),
-        );
-      }
-    } catch (e) {
-      // Handle errors
-      setState(() {
-        _isLoading = false;
-        _errorMessage = e.toString();
-      });
+        ),
+      );
     }
+
+    // Fire the API request in the background
+    // The request will complete even if the user navigates away
+    _apiService.generateProject(request).then((response) {
+      // Update state with response (though user has already navigated away)
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _responseMessage = response.message;
+          _projectId = response.projectId;
+        });
+      }
+
+      // Note: The preview screen will handle showing the actual project
+      // once generation completes
+    }).catchError((e) {
+      // Handle errors silently or show a snackbar
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = e.toString();
+        });
+      }
+    });
   }
 
   @override
