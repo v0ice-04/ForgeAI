@@ -7,12 +7,14 @@ import '../config/api_config.dart';
 import '../widgets/web_preview/web_preview_pane.dart';
 
 class PreviewScreen extends StatefulWidget {
-  final String projectId;
+  final String? projectId;
+  final String? jobId;
   final bool isGenerating;
 
   const PreviewScreen({
     super.key,
-    required this.projectId,
+    this.projectId,
+    this.jobId,
     this.isGenerating = false,
   });
 
@@ -24,12 +26,13 @@ class _PreviewScreenState extends State<PreviewScreen> {
   final TextEditingController _chatController = TextEditingController();
   final List<Map<String, String>> _messages = [];
   final ApiService _apiService = ApiService();
-  final ForgeService _forgeService = ForgeService(); // Added ForgeService
+  final ForgeService _forgeService = ForgeService();
 
   bool _isRegenerating = false;
   bool _isInitialGeneration = false;
   String? _generationError;
   Timer? _pollTimer;
+  String? _currentProjectId;
 
   // Track refresh state for the preview iframe
   Key _previewKey = UniqueKey();
@@ -37,9 +40,10 @@ class _PreviewScreenState extends State<PreviewScreen> {
   @override
   void initState() {
     super.initState();
+    _currentProjectId = widget.projectId;
 
     // Set initial state based on whether we're generating
-    if (widget.isGenerating) {
+    if (widget.isGenerating || widget.jobId != null) {
       _isInitialGeneration = true;
       _messages.add({
         'role': 'assistant',
@@ -63,35 +67,53 @@ class _PreviewScreenState extends State<PreviewScreen> {
   }
 
   void _startPolling() {
+    if (widget.jobId == null && widget.projectId == null) {
+      setState(() {
+        _generationError = "No Job ID or Project ID provided.";
+        _isInitialGeneration = false;
+      });
+      return;
+    }
+
     // Poll every 2 seconds
     _pollTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
       try {
-        final status = await _forgeService.getProjectStatus(widget.projectId);
+        // If we have a Job ID, check job status.
+        // If only Project ID, assume we aren't generating anymore or use legacy status (which we mapped to job status in service, but that might fail if ID formats differ).
+        // New flow uses Job ID.
+        if (widget.jobId != null) {
+          final status = await _forgeService.getJobStatus(widget.jobId!);
 
-        if (!mounted) return;
+          if (!mounted) return;
 
-        if (status.isCompleted) {
-          timer.cancel();
-          setState(() {
-            _isInitialGeneration = false;
-            _messages.add({
-              'role': 'assistant',
-              'text': 'Project generated successfully! displaying preview...',
+          if (status.isCompleted) {
+            timer.cancel();
+            setState(() {
+              _isInitialGeneration = false;
+              _currentProjectId = status.projectId;
+              _messages.add({
+                'role': 'assistant',
+                'text': 'Project generated successfully! displaying preview...',
+              });
+              _refreshPreview();
             });
-            _refreshPreview();
-          });
-        } else if (status.isFailed) {
-          timer.cancel();
-          setState(() {
-            _isInitialGeneration = false;
-            _generationError = status.error ?? 'Unknown error occurred';
-            _messages.add({
-              'role': 'assistant',
-              'text': 'Generation failed: $_generationError',
+          } else if (status.isFailed) {
+            timer.cancel();
+            setState(() {
+              _isInitialGeneration = false;
+              _generationError = status.error ?? 'Unknown error occurred';
+              _messages.add({
+                'role': 'assistant',
+                'text': 'Generation failed: $_generationError',
+              });
             });
-          });
+          }
+        } else {
+          // Legacy/Direct mode - if we have projectId but flag says generating?
+          // We shouldn't be here in new flow. Stop polling.
+          timer.cancel();
+          setState(() => _isInitialGeneration = false);
         }
-        // If processing, continue polling
       } catch (e) {
         // Log error but continue polling (network glitches happen)
         print('Polling error: $e');
@@ -109,6 +131,9 @@ class _PreviewScreenState extends State<PreviewScreen> {
     final text = _chatController.text.trim();
     if (text.isEmpty) return;
 
+    // Ensure we have a project ID before editing
+    if (_currentProjectId == null) return;
+
     setState(() {
       _messages.add({'role': 'user', 'text': text});
       _chatController.clear();
@@ -116,7 +141,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
     });
 
     try {
-      await _apiService.editProject(widget.projectId, text);
+      await _apiService.editProject(_currentProjectId!, text);
 
       // Successfully regenerated
       setState(() {
@@ -178,7 +203,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
             ),
             child: Center(
               child: Text(
-                'Project: ${widget.projectId.substring(0, 8).toUpperCase()}',
+                'Project: ${_currentProjectId != null && _currentProjectId!.length >= 8 ? _currentProjectId!.substring(0, 8).toUpperCase() : "..."}',
                 style: const TextStyle(
                   color: Colors.white70,
                   fontSize: 12,
@@ -308,11 +333,13 @@ class _PreviewScreenState extends State<PreviewScreen> {
                         ),
                         const SizedBox(width: 8),
                         ElevatedButton.icon(
-                          onPressed: () {
-                            web.window.open(
-                                ApiConfig.previewUrl(widget.projectId),
-                                '_blank');
-                          },
+                          onPressed: _currentProjectId == null
+                              ? null
+                              : () {
+                                  web.window.open(
+                                      ApiConfig.previewUrl(_currentProjectId!),
+                                      '_blank');
+                                },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF334155),
                             foregroundColor: Colors.white,
@@ -330,11 +357,13 @@ class _PreviewScreenState extends State<PreviewScreen> {
                         ),
                         const SizedBox(width: 12),
                         ElevatedButton.icon(
-                          onPressed: () {
-                            web.window.open(
-                                ApiConfig.downloadUrl(widget.projectId),
-                                '_blank');
-                          },
+                          onPressed: _currentProjectId == null
+                              ? null
+                              : () {
+                                  web.window.open(
+                                      ApiConfig.downloadUrl(_currentProjectId!),
+                                      '_blank');
+                                },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF4F46E5),
                             foregroundColor: Colors.white,
@@ -422,11 +451,14 @@ class _PreviewScreenState extends State<PreviewScreen> {
                                     ],
                                   ),
                                 )
-                              else
+                              else if (_currentProjectId != null)
                                 WebPreviewWeb(
                                   key: _previewKey,
-                                  url: ApiConfig.previewUrl(widget.projectId),
-                                ),
+                                  url: ApiConfig.previewUrl(_currentProjectId!),
+                                )
+                              else
+                                const Center(
+                                    child: Text("Waiting for Project ID...")),
 
                               // Overlay for regeneration (editing)
                               if (_isRegenerating)

@@ -27,17 +27,18 @@ class GenerationRequest {
   }
 }
 
-/// Response from Spring Boot backend (async job)
 class GenerationResponse {
-  final String projectId;
-  final String status; // "processing" | "completed" | "failed"
+  final String? jobId;
+  final String? projectId;
+  final String status; // "QUEUED" | "PROCESSING" | "COMPLETED" | "FAILED"
   final String? message;
   final String? previewUrl;
   final String? zipUrl;
   final String? error;
 
   GenerationResponse({
-    required this.projectId,
+    this.jobId,
+    this.projectId,
     required this.status,
     this.message,
     this.previewUrl,
@@ -46,18 +47,23 @@ class GenerationResponse {
   });
 
   factory GenerationResponse.fromJson(Map<String, dynamic> json) {
+    // Handle nested result from backend GenerationJob
+    final result = json['result'] as Map<String, dynamic>?;
+
     return GenerationResponse(
-      projectId: json['projectId'] as String? ?? '',
-      status: json['status'] as String? ?? 'processing',
-      message: json['message'] as String?,
-      previewUrl: json['previewUrl'] as String?,
-      zipUrl: json['zipUrl'] as String?,
-      error: json['error'] as String?,
+      jobId: json['jobId'] as String?,
+      projectId: json['projectId'] as String? ?? result?['projectId'],
+      status: json['status'] as String? ?? 'QUEUED',
+      message: json['errorMessage'] as String? ?? result?['message'],
+      previewUrl: result?['previewUrl'],
+      zipUrl: result?['zipUrl'],
+      error: json['errorMessage'] as String? ?? result?['error'],
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
+      'jobId': jobId,
       'projectId': projectId,
       'status': status,
       if (message != null) 'message': message,
@@ -67,7 +73,7 @@ class GenerationResponse {
     };
   }
 
-  bool get isProcessing => status == 'processing';
-  bool get isCompleted => status == 'completed';
-  bool get isFailed => status == 'failed';
+  bool get isProcessing => status == 'QUEUED' || status == 'PROCESSING';
+  bool get isCompleted => status == 'COMPLETED';
+  bool get isFailed => status == 'FAILED';
 }

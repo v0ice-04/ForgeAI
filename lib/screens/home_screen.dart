@@ -71,6 +71,7 @@ class _HomeScreenState extends State<HomeScreen> {
         MaterialPageRoute(
           builder: (context) => PreviewScreen(
             projectId: response.projectId,
+            jobId: response.jobId,
             // If status is already completed (rare but possible), don't show generating state
             isGenerating: !response.isCompleted,
           ),
