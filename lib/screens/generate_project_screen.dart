@@ -3,7 +3,8 @@ import '../models/project_request.dart';
 import '../services/api_service.dart';
 import 'preview_screen.dart';
 
-/// Screen to demonstrate project generation with the backend API
+/// A simplified screen primarily used for testing the project generation API.
+/// It provides a basic UI to trigger generation without the full form of HomeScreen.
 class GenerateProjectScreen extends StatefulWidget {
   const GenerateProjectScreen({super.key});
 

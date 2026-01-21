@@ -6,6 +6,12 @@ import '../services/forge_service.dart'; // Added for pollProjectStatus
 import '../config/api_config.dart';
 import '../widgets/web_preview/web_preview_pane.dart';
 
+/// The core workspace screen.
+/// Features a split-pane layout:
+/// - Left: AI Chat interface for refining the project.
+/// - Right: Live website preview using an iframe.
+///
+/// Handles polling for the initial generation status and subsequent edits.
 class PreviewScreen extends StatefulWidget {
   final String? projectId;
   final String? jobId;
@@ -66,6 +72,8 @@ class _PreviewScreenState extends State<PreviewScreen> {
     super.dispose();
   }
 
+  /// Polls the backend every 2 seconds to check if the generation job is complete.
+  /// Updates the UI state when the job finishes (success or failure).
   void _startPolling() {
     if (widget.jobId == null && widget.projectId == null) {
       setState(() {
@@ -127,6 +135,8 @@ class _PreviewScreenState extends State<PreviewScreen> {
     });
   }
 
+  /// Sends a refinement request to the backend.
+  /// Effectively an "Edit" or "Iterate" loop.
   Future<void> _sendMessage() async {
     final text = _chatController.text.trim();
     if (text.isEmpty) return;

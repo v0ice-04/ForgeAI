@@ -7,6 +7,9 @@ import '../config/api_config.dart';
 
 /// Singleton API service that persists beyond widget lifecycle.
 /// This ensures HTTP requests survive navigation and widget disposal.
+/// Service responsible for making HTTP requests to the ForgeAI backend.
+/// Handles JSON encoding/decoding and error management.
+/// Designed as a Singleton to maintain state if needed in future.
 class ApiService {
   // Singleton instance
   static final ApiService _instance = ApiService._internal();

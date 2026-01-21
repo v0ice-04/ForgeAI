@@ -4,6 +4,9 @@ import '../models/generation_model.dart';
 import '../services/forge_service.dart';
 import 'preview_screen.dart';
 
+/// The primary entry point for the user.
+/// Displays a form to collect project details (name, type, sections, theme).
+/// Initiates the generation process by calling the backend API.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -39,6 +42,8 @@ class _HomeScreenState extends State<HomeScreen> {
     'Orange': Colors.orange,
   };
 
+  /// Validates inputs and sends the generation request to the backend.
+  /// navigating immediately to the PreviewScreen to wait for the result.
   Future<void> _generateApplication() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedSections.isEmpty) {

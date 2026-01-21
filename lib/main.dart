@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'screens/home_screen.dart';
 
+/// Application entry point.
 void main() {
   runApp(const ForgeAIApp());
 }
 
+/// The root widget of the ForgeAI application.
+/// Configures the global theme (Dark mode with Neon accents) and routing.
 class ForgeAIApp extends StatelessWidget {
   const ForgeAIApp({super.key});
 

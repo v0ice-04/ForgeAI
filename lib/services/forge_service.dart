@@ -3,6 +3,8 @@ import 'package:http/http.dart' as http;
 import '../models/generation_model.dart';
 import '../config/api_config.dart';
 
+/// Specialized service for handling generation-specific API calls.
+/// Maps backend JSON responses to the [GenerationResponse] model.
 class ForgeService {
   Future<GenerationResponse> generateApplication(
       GenerationRequest request) async {
